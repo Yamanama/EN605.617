@@ -28,7 +28,7 @@ __global__ void what_is_my_id_2d_A(
 	block_dimy[thread_idx] = blockDim.y;
 }
 
-#define ARRAY_SIZE_X 32
+#define ARRAY_SIZE_X 16
 #define ARRAY_SIZE_Y 16
 
 #define ARRAY_SIZE_IN_BYTES ((ARRAY_SIZE_X) * (ARRAY_SIZE_Y) * (sizeof(unsigned int)))

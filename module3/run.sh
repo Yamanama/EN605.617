@@ -1,0 +1,9 @@
+#! /bin/bash
+
+make
+echo Running with 256 128...
+./assignment.exe 256 128
+echo Running with 128 2...
+./assignment.exe 128 2
+echo Running with 64 1...
+./assignment.exe 64 1
