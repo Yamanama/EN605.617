@@ -1,35 +1,7 @@
 
 #include "assignment.h"
 #include "kernels.cu"
-/**
- * Structure to contain derived settings from CLI input
- */
-typedef struct {
-    unsigned int totalThreads;
-    unsigned int blockSize;
-    unsigned int totalBlocks;
-    unsigned int arraySize;
-} Options;
-/**
- * Structure to hold cuda allocations
- */
-typedef struct {
-    unsigned int * block;
-    unsigned int * sequence;
-    unsigned int * random;
-    curandState_t* states;
-} Device;
-/**
- * Structure to results from GPU operations
- */
-typedef struct {
-    unsigned int * sequence;
-    unsigned int * random;
-    unsigned int * sum;
-    unsigned int * difference;
-    unsigned int * product;
-    unsigned int * modulus;
-} Results;
+
 /**
  * Parse CLI arguments and store in an Options Structure
  *
