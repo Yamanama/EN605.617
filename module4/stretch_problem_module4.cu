@@ -1,4 +1,5 @@
-#include <stdio.h> #include <stdlib.h>
+#include <stdio.h> 
+#include <stdlib.h>
 
 /* 
  * The maximum and minimum integer values of the range of printable characters 
@@ -6,11 +7,11 @@
  * ciphertext is always printable. 
  */ 
 #define MAX_PRINTABLE 64 
-#define MIN_PRINTABLE 128 
+#define MIN_PRINTABLE 91
 #define NUM_ALPHA MAX_PRINTABLE - MIN_PRINTABLE
+#define STRING_LENGTH 14
 
-
-__global__ void encrypt(unsigned int *text, unsigned int *key, unsigned int *result) { /* Calculate the current index */ const unsigned int
+__global__ void encrypt(char *text, char *key, char* result) { /* Calculate the current index */ const unsigned int
 	idx = (blockIdx.x * blockDim.x) + threadIdx.x;
 
 	 /* 
@@ -24,18 +25,49 @@ __global__ void encrypt(unsigned int *text, unsigned int *key, unsigned int *res
 	char cipherchar = (adjusted_text + adjusted_key) % (NUM_ALPHA);
 
 	 /* adjust back to normal ascii (starting at MIN_PRINTABLE) and save to result */ 
-	result[idx] = (unsigned int) cipherchar + MIN_PRINTABLE ;
+	result[idx] = (char)cipherchar + MIN_PRINTABLE ;
 }
 
-void pageable_transfer_execution(int array_size, int threads_per_block, FILE *input_fp, FILE *key_fp) { /* Calculate the size of the array
-	*/ int array_size_in_bytes = (sizeof(unsigned int) * (array_size)); int i = 0;
+cudaEvent_t get_time() {
+	cudaEvent_t marker;
+	cudaEventCreate(&marker);
+	cudaEventRecord(marker);
+	return marker;
+}
 
-	 unsigned int *cpu_text = (unsigned int *) malloc(array_size_in_bytes); 
-	 unsigned int *cpu_key = (unsigned int *) malloc(array_size_in_bytes); 
-	 unsigned int *cpu_result = (unsigned int *) malloc(array_size_in_bytes);
+void print_encryption_results(char* cpu_text, 
+							  char* cpu_key, 
+							  char* cpu_result,
+							  int array_size) 
+{
+	for (int i = 0; i<STRING_LENGTH; i++){
+		printf("%c", *(cpu_text + i));
+	}
+	printf("\n");
+	for (int i = 0; i<STRING_LENGTH; i++){
+		printf("%c", *(cpu_key + i));
+	}
+	printf("\n");
+	for (int i = 0; i<STRING_LENGTH; i++){
+		printf("%c", *(cpu_result + i));
+	}
+	printf("\n");
+}
 
+void pageable_transfer_execution(int array_size, int threads_per_block, const char* input_fp, const char* key_fp) { 
+	/* Calculate the size of the array */
+	int array_size_in_bytes = (sizeof(char) * strlen(input_fp)); 
+
+	 char *cpu_text = (char *) malloc(array_size_in_bytes); 
+	 char *cpu_key = (char *) malloc(array_size_in_bytes); 
+	 char *cpu_result = (char *) malloc(array_size_in_bytes);
+	 memcpy(cpu_text, input_fp, array_size_in_bytes);
+	 memcpy(cpu_key, key_fp, array_size_in_bytes);
 	 /* Read characters from the input and key files into the text and key arrays respectively */ 
-	 
+	 char *gpu_text;
+	 char *gpu_key;
+	 char *gpu_result;
+
 
 	 cudaMalloc((void **)&gpu_text, array_size_in_bytes); 
 	 cudaMalloc((void **)&gpu_key, array_size_in_bytes); 
@@ -66,30 +98,41 @@ void pageable_transfer_execution(int array_size, int threads_per_block, FILE *in
 	 print_encryption_results(cpu_text, cpu_key, cpu_result, array_size);
 
 	 /* Free the GPU memory */ 
-	 // INSERT CODE HERE
-
+	 cudaFree(gpu_text);
+	 cudaFree(gpu_key);
+	 cudaFree(gpu_result);
 
 	 /* Free the CPU memory */ 
-	 // INSERT CODE HERE
+	 free(cpu_text);
+	 free(cpu_key);
+	 free(cpu_result);
 
 }
 
-void pinned_transfer_execution(int array_size, int threads_per_block, FILE *input_fp, FILE *key_fp) { // Code left out for brevity sake
+void pinned_transfer_execution(int array_size, int threads_per_block, const char *input_fp, const char *key_fp) { 
+	int array_size_in_bytes = (sizeof(char) * (array_size)); 
 
-	 //pin it cudaMallocHost((void **)&cpu_text_pinned, array_size_in_bytes); cudaMallocHost((void **)&cpu_key_pinned, array_size_in_bytes);
+
+	char *cpu_text_pinned;
+	char *cpu_key_pinned;
+	char *cpu_result_pinned;
+	//pin it 
+	cudaMallocHost((void **)&cpu_text_pinned, array_size_in_bytes); cudaMallocHost((void **)&cpu_key_pinned, array_size_in_bytes);
 	cudaMallocHost((void **)&cpu_result_pinned, array_size_in_bytes);
-
+	memcpy(cpu_text_pinned, input_fp, array_size_in_bytes);
+	memcpy(cpu_key_pinned, key_fp, array_size_in_bytes);
 	 /* Copy the memory over */ 
-	// INSERT CODE HERE
+	
 
 	 /* Declare and allocate pointers for GPU based parameters */ 
-	unsigned int *gpu_text; 
-	unsigned int *gpu_key; 
-	unsigned int *gpu_result;
+	char *gpu_text; 
+	char *gpu_key; 
+	char *gpu_result;
 
 	cudaMalloc((void **)&gpu_text, array_size_in_bytes); 
 	cudaMalloc((void **)&gpu_key, array_size_in_bytes); 
 	cudaMalloc((void **)&gpu_result, array_size_in_bytes);
+	
 
 	/* Copy the CPU memory to the GPU memory */ 
 	cudaMemcpy( gpu_text, cpu_text_pinned, array_size_in_bytes, cudaMemcpyHostToDevice);
@@ -139,12 +182,13 @@ void print_usage(char *name) {
   * function. * Makes sure the files are valid, handles opening and closing of file pointers. 
   */ void pageable_transfer(int num_threads, int threads_per_block, char *input_file, char *key_file) { 
 
-	// Code left out for brevity sake
+	const char * input_fp = "THIS IS A TEST";
+	const char * key_fp =   "NOTENOTENOTENO";
 
  	/* Perform the pageable transfer */ 
 	pageable_transfer_execution(num_threads, threads_per_block, input_fp, key_fp);
 
- 	fclose(input_fp); fclose(key_fp); 
+ 	
 }
 
 /** 
@@ -153,12 +197,13 @@ void print_usage(char *name) {
   * Makes sure the files are valid, handles opening and closing of file pointers. 
   */ void pinned_transfer(int num_threads, int threads_per_block, char *input_file, char *key_file) {
 
-	// Code left out for brevity sake
+	const char * input_fp = "THIS IS A TEST";
+	const char * key_fp =   "NOTENOTENOTENO";
 
     /* Perform the pageable transfer */ 
     pinned_transfer_execution(num_threads, threads_per_block, input_fp, key_fp);
 
- 	fclose(input_fp); fclose(key_fp); 
+ 	
 }
 
 	/** 
