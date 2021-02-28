@@ -8,8 +8,8 @@
 #define TRANSFER_STRING "    Host Transfer"
 #define CONST_TRANSFER_STRING "    Constant Transfer"
 
-__constant__ unsigned int const_sequence[512];
-__constant__ unsigned int const_random[512];
+__constant__ unsigned int const_sequence[CONSTANT_MAX];
+__constant__ unsigned int const_random[CONSTANT_MAX];
 
 /**
  * Kernel to initial curand states

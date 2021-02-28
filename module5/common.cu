@@ -8,7 +8,7 @@
  * options - options structure
  */
  void parseArgs(unsigned int argc, char** argv, Options* options){
-    options->totalThreads = 1<<20;
+    options->totalThreads = 512;
     options->blockSize = 256;
     // first arg is the total thread count
     if (argc >= 2) {

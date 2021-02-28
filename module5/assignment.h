@@ -3,6 +3,8 @@
 #include <curand.h>
 #include <curand_kernel.h>
 
+#define CONSTANT_MAX 512
+
 /**
  * Structure to contain derived settings from CLI input
  */
