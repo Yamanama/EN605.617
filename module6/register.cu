@@ -1,8 +1,41 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define KERNEL_LOOP 128
-
+#define KERNEL_LOOP 1024
+/**
+ * Setup the cuda timers
+ *
+ * start - the start marker
+ * stop - the stop marker
+ */
+ void setupTimer(cudaEvent_t* start, cudaEvent_t* stop){
+        cudaEventCreate(start);
+        cudaEventCreate(stop);
+    }
+    /**
+     * Setup the cuda timers
+     *
+     * start - the start marker
+     * stop - the stop marker
+     * message - log message
+     */
+    void logTime(cudaEvent_t start, cudaEvent_t stop, const char* message){
+        cudaEventRecord(stop, 0);
+        cudaEventSynchronize(stop);
+        float elapsed;
+        cudaEventElapsedTime(&elapsed, start, stop);
+        printf("  %8s: %f\n", message, elapsed);
+    }
+    /**
+     * Setup the cuda timers
+     *
+     * start - the start marker
+     * stop - the stop marker
+     */
+    void cleanTimer(cudaEvent_t start, cudaEvent_t stop){
+        cudaEventDestroy(start);
+        cudaEventDestroy(stop);
+    }
 __host__ void wait_exit(void)
 {
         char ch;
@@ -41,15 +74,17 @@ __host__ void gpu_kernel(void)
 
         unsigned int host_packed_array[num_elements];
         unsigned int host_packed_array_output[num_elements];
-
+        cudaEvent_t start, stop;
+        // setup timer
+        setupTimer(&start, &stop);
         cudaMalloc(&data_gpu, num_bytes);
 
         generate_rand_data(host_packed_array);
 
         cudaMemcpy(data_gpu, host_packed_array, num_bytes,cudaMemcpyHostToDevice);
-
+        cudaEventRecord(start, 0);
         test_gpu_register <<<num_blocks, num_threads>>>(data_gpu, num_elements);
-
+        logTime(start, stop, "Time: ");
         cudaThreadSynchronize();        // Wait for the GPU launched work to complete
         cudaGetLastError();
 
