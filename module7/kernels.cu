@@ -4,8 +4,8 @@
 // RANDOM_MAX ensures 0 <= result < 4 to meet the requirement
 #define RANDOM_MAX 4
 #define KERNEL_STRING "    Kernel"
-#define TRANSFER_STRING "    Transfer"
-#define STREAM_STRING "    Stream:"
+#define TRANSFER_STRING "    Streaming to host"
+#define STREAM_STRING "    Stream"
 /**
  * Kernel to initial curand states
  * Derived from https://docs.nvidia.com/cuda/curand
