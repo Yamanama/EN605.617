@@ -1,0 +1,1 @@
+`ThrustAssignment/run.sh` will execute the Module 9 Thrust assignment
