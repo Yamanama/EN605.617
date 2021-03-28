@@ -249,10 +249,12 @@ endif
 ################################################################################
 
 # Target rules
-all: build
+all: build1 build2
 
-build: nvgraph_Pagerank
+build1: pageable_nv_graph
 
+build2: pinned_nv_graph                                                                                  
+                                                                                  
 check.deps:
 ifeq ($(SAMPLE_ENABLED),0)
 	@echo "Sample will be waived due to the above missing dependencies"
@@ -260,19 +262,28 @@ else
 	@echo "Sample is ready - all dependencies have been met"
 endif
 
-nvgraph_Pagerank.o:nvgraph_Pagerank.cpp
+pageable_nv_graph.o:pageable_nv_graph.cpp
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-nvgraph_Pagerank: nvgraph_Pagerank.o
+pageable_nv_graph: pageable_nv_graph.o
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 	$(EXEC) mkdir -p ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
 	$(EXEC) cp $@ ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
 
-run: build
-	$(EXEC) ./nvgraph_Pagerank
+pinned_nv_graph.o:pinned_nv_graph.cpp
+	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
+pinned_nv_graph: pinned_nv_graph.o
+	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
+	$(EXEC) mkdir -p ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
+	$(EXEC) cp $@ ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
+
+                
+run: build1
+	$(EXEC) ./pageable_nv_graph
+                                                                                            
 clean:
-	rm -f nvgraph_Pagerank nvgraph_Pagerank.o
-	rm -rf ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)/nvgraph_Pagerank
+	rm -f pageable_nv_graph pageable_nv_graph.o pinned_nv_graph pinned_nv_graph.o
+	rm -rf ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)/pageable_nv_graph ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)/pinned_nv_graph
 
 clobber: clean

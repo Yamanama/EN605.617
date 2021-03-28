@@ -251,7 +251,7 @@ endif
 # Target rules
 all: build
 
-build: boxFilterNPP
+build: mirror_image_NPP
 
 check.deps:
 ifeq ($(SAMPLE_ENABLED),0)
@@ -260,19 +260,19 @@ else
 	@echo "Sample is ready - all dependencies have been met"
 endif
 
-boxFilterNPP.o:boxFilterNPP.cpp
+mirror_image_NPP.o:mirror_image_NPP.cpp
 	$(EXEC) $(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
 
-boxFilterNPP: boxFilterNPP.o
+mirror_image_NPP: mirror_image_NPP.o
 	$(EXEC) $(NVCC) $(ALL_LDFLAGS) $(GENCODE_FLAGS) -o $@ $+ $(LIBRARIES)
 	$(EXEC) mkdir -p ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
 	$(EXEC) cp $@ ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)
 
 run: build
-	$(EXEC) ./boxFilterNPP
+	$(EXEC) ./mirror_image_NPP
 
 clean:
-	rm -f boxFilterNPP boxFilterNPP.o
-	rm -rf ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)/boxFilterNPP
+	rm -f mirror_image_NPP mirror_image_NPP.o
+	rm -rf ../../bin/$(TARGET_ARCH)/$(TARGET_OS)/$(BUILD_TYPE)/mirror_image_NPP
 
 clobber: clean
