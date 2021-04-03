@@ -196,140 +196,168 @@ bool CreateMemObjects(cl_context context, cl_mem memObjects[3],
     return true;
 }
 
-///
-//  Cleanup any created OpenCL resources
-//
-void Cleanup(cl_context context, cl_command_queue commandQueue,
-             cl_program program, cl_kernel kernel, cl_mem memObjects[3])
-{
-    for (int i = 0; i < 3; i++)
-    {
-        if (memObjects[i] != 0)
-            clReleaseMemObject(memObjects[i]);
-    }
-    if (commandQueue != 0)
-        clReleaseCommandQueue(commandQueue);
 
-    if (kernel != 0)
-        clReleaseKernel(kernel);
+/**
+ *  Modifications to support the requirements for Module 10 assignment below
+ *  this line.
+ */
 
-    if (program != 0)
-        clReleaseProgram(program);
-
-    if (context != 0)
-        clReleaseContext(context);
-
-}
-
-///
-//	main() for HelloWorld example
-//
-int main(int argc, char** argv)
-{
-    cl_context context = 0;
-    cl_command_queue commandQueue = 0;
-    cl_program program = 0;
-    cl_device_id device = 0;
-    cl_kernel kernel = 0;
-    cl_mem memObjects[3] = { 0, 0, 0 };
-    cl_int errNum;
-
-    // Create an OpenCL context on first available platform
-    context = CreateContext();
-    if (context == NULL)
-    {
-        std::cerr << "Failed to create OpenCL context." << std::endl;
-        return 1;
-    }
-
-    // Create a command-queue on the first device available
-    // on the created context
-    commandQueue = CreateCommandQueue(context, &device);
-    if (commandQueue == NULL)
-    {
-        Cleanup(context, commandQueue, program, kernel, memObjects);
-        return 1;
-    }
-
-    // Create OpenCL program from HelloWorld.cl kernel source
-    program = CreateProgram(context, device, "HelloWorld.cl");
-    if (program == NULL)
-    {
-        Cleanup(context, commandQueue, program, kernel, memObjects);
-        return 1;
-    }
-
-    // Create OpenCL kernel
-    kernel = clCreateKernel(program, "hello_kernel", NULL);
-    if (kernel == NULL)
-    {
-        std::cerr << "Failed to create kernel" << std::endl;
-        Cleanup(context, commandQueue, program, kernel, memObjects);
-        return 1;
-    }
-
-    // Create memory objects that will be used as arguments to
-    // kernel.  First create host memory arrays that will be
-    // used to store the arguments to the kernel
-    float result[ARRAY_SIZE];
+/**
+ * The input arrays
+ */
+struct Arrays {
     float a[ARRAY_SIZE];
     float b[ARRAY_SIZE];
+    /**
+     * Constructor
+     */
+    Arrays() {}
+};
+/**
+ * The Operation Structure
+ */
+struct Operation {
+    cl_context context;
+    cl_command_queue commandQueue;
+    cl_program program;
+    cl_device_id device;
+    cl_kernel kernel;
+    cl_int errNum;
+    cl_mem memObjects[3];
+    const char * name;
+    float result[ARRAY_SIZE];
+    /**
+     * Constructor
+     */
+    Operation(const char * kernelName, Arrays * results) {
+        this->name = kernelName;
+        this->device = 0;
+        this->context = CreateContext();
+        this->commandQueue = CreateCommandQueue(this->context, &this->device);
+        this->program = CreateProgram(this->context, 
+                                      this->device, 
+                                      "HelloWorld.cl");
+        this->kernel = clCreateKernel(this->program, kernelName, NULL);
+    }
+};
+
+/**
+ * Clean up
+ *
+ * operation - the operation
+ */
+void clean(Operation operation) {
+    clReleaseCommandQueue(operation.commandQueue);
+    clReleaseKernel(operation.kernel);
+    clReleaseProgram(operation.program);
+    clReleaseContext(operation.context);
+}
+/**
+ * Create memory objects
+ *
+ * op - the operation
+ * arrays - the input arrays
+ * memObjects - the memory objects
+ */
+void createMemObjects(Operation * op, Arrays* arrays, cl_mem memObjects[3]) {
+    cl_int errNum;
+    // make the memory object and check it
+    if (!CreateMemObjects(op->context, memObjects, arrays->a, arrays->b)) {
+        clean(*op);
+        exit(1);
+    }
+    // Set the kernel arguments (result, a, b)
+    errNum = clSetKernelArg(op->kernel, 0, sizeof(cl_mem), &memObjects[0]);
+    errNum |= clSetKernelArg(op->kernel, 1, sizeof(cl_mem), &memObjects[1]);
+    errNum |= clSetKernelArg(op->kernel, 2, sizeof(cl_mem), &memObjects[2]);
+    // check the status
+    if (errNum != CL_SUCCESS) {
+        std::cerr << "Error setting kernel arguments." << std::endl;
+        clean(*op);
+        exit(1);
+    }
+}
+/**
+ * Populate the arrays
+ *
+ * arrays - the arrays
+ */
+void populateArrays(Arrays * arrays) {
     for (int i = 0; i < ARRAY_SIZE; i++)
     {
-        a[i] = (float)i;
-        b[i] = (float)(i * 2);
+        arrays->a[i] = (float)i;
+        arrays->b[i] = (float)(i * 2);
     }
-
-    if (!CreateMemObjects(context, memObjects, a, b))
-    {
-        Cleanup(context, commandQueue, program, kernel, memObjects);
-        return 1;
-    }
-
-    // Set the kernel arguments (result, a, b)
-    errNum = clSetKernelArg(kernel, 0, sizeof(cl_mem), &memObjects[0]);
-    errNum |= clSetKernelArg(kernel, 1, sizeof(cl_mem), &memObjects[1]);
-    errNum |= clSetKernelArg(kernel, 2, sizeof(cl_mem), &memObjects[2]);
-    if (errNum != CL_SUCCESS)
-    {
-        std::cerr << "Error setting kernel arguments." << std::endl;
-        Cleanup(context, commandQueue, program, kernel, memObjects);
-        return 1;
-    }
-
+}
+/**
+ * Perform the operation
+ * 
+ * op - the operation
+ * arrays - the input arrays
+ */
+void doStuff(Operation *op, Arrays * arrays) {
+    std::cout << "Executing " << op->name << std::endl;
     size_t globalWorkSize[1] = { ARRAY_SIZE };
     size_t localWorkSize[1] = { 1 };
-
+    cl_mem memObjects[3] = {0,0,0};
+    createMemObjects(op, arrays, memObjects);
+    clock_t start, end;
+    start = clock();
     // Queue the kernel up for execution across the array
-    errNum = clEnqueueNDRangeKernel(commandQueue, kernel, 1, NULL,
+    clEnqueueNDRangeKernel(op->commandQueue, op->kernel, 
+                                    1, NULL,
                                     globalWorkSize, localWorkSize,
                                     0, NULL, NULL);
-    if (errNum != CL_SUCCESS)
-    {
-        std::cerr << "Error queuing kernel for execution." << std::endl;
-        Cleanup(context, commandQueue, program, kernel, memObjects);
-        return 1;
-    }
-
-    // Read the output buffer back to the Host
-    errNum = clEnqueueReadBuffer(commandQueue, memObjects[2], CL_TRUE,
-                                 0, ARRAY_SIZE * sizeof(float), result,
-                                 0, NULL, NULL);
-    if (errNum != CL_SUCCESS)
-    {
-        std::cerr << "Error reading result buffer." << std::endl;
-        Cleanup(context, commandQueue, program, kernel, memObjects);
-        return 1;
-    }
-
-    // Output the result buffer
-    for (int i = 0; i < ARRAY_SIZE; i++)
-    {
-        std::cout << result[i] << " ";
-    }
+    end = clock();
+    double duration = double(end - start) / double(CLOCKS_PER_SEC);
+    std::cout << "  Kernel: " << std::fixed << duration << std::setprecision(5);
     std::cout << std::endl;
-    std::cout << "Executed program succesfully." << std::endl;
-    Cleanup(context, commandQueue, program, kernel, memObjects);
-
+    start = clock();
+    // Read the output buffer back to the Host
+    clEnqueueReadBuffer(op->commandQueue, memObjects[2], CL_TRUE, 0, ARRAY_SIZE * sizeof(float), op->result, 0, NULL, NULL);
+    end = clock();
+    duration = double(end - start) / double(CLOCKS_PER_SEC);
+    std::cout << "  Read Buffer: " << duration << std::endl;
+}
+/**
+ *  Print the results
+ *
+ *  operations - the operations
+ *  arrays - the input arrays
+ */
+void printOps(Operation operations[], Arrays* arrays) {
+    for (int j =0; j < ARRAY_SIZE; j++) {
+        for (int i =0; i < 5; i++) { 
+            std::cout << operations[i].result[j] << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+/**
+ * Main
+ */
+int main(int argc, char** argv)
+{
+    // make the arrays
+    Arrays *arrays = new Arrays();
+    populateArrays(arrays);
+    // make the operations
+    Operation operations[5] = {
+        Operation("sum", arrays),
+        Operation("difference", arrays),
+        Operation("product", arrays),
+        Operation("quotient", arrays),
+        Operation("power", arrays)
+    };
+    // perform the operations
+    for (int i =0; i < 5; i++) {
+        doStuff(&operations[i], arrays);
+    }
+    // print
+    // printOps(operations, arrays);
+    // cleanup
+    for (int i=0; i <5; i++) {
+        clean(operations[i]);
+    }
     return 0;
 }
