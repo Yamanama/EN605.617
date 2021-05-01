@@ -4,7 +4,7 @@ MAC="Darwin"
 if [ $OS == $MAC ]; then
     g++ ImageFilter.cpp common/FreeImage/lib/darwin/libfreeimage.a -framework OpenCL -I common/FreeImage/include -o ImageFilter.exe
 else
-    g++ ImageFilter.cpp common/FreeImage/lib/linux/x86_64/libfreeimage.a -lOpenCL -I common/FreeImage/include -o ImageFilter.exe                                
+    g++ ImageFilter.cpp common/FreeImage/lib/linux/x86_64/libfreeimage.a -lOpenCL -I common/FreeImage/include -I /usr/include/nvidia-396/ -o ImageFilter.exe                                
 fi
 # get the number of runs from the cli. defaults to 5
 # ex ./run.sh 10

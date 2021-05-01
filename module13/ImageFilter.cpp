@@ -23,6 +23,7 @@
 #include <sstream>
 #include <vector>
 #include <string.h>
+#include <iomanip>
 
 #ifdef __APPLE__
 #include <OpenCL/cl.h>
